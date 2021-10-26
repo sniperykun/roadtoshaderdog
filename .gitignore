@@ -58,3 +58,14 @@ sysinfo.txt
 # Crashlytics generated file
 crashlytics-build.properties
 
+/.idea/.gitignore
+/.idea/.idea.roadtoshaderdog/.idea/.gitignore
+/.idea/.idea.roadtoshaderdog/.idea/encodings.xml
+/.idea/.idea.roadtoshaderdog/.idea/indexLayout.xml
+/.idea/.idea.roadtoshaderdog/.idea/misc.xml
+/.idea/.idea.roadtoshaderdog/.idea/projectSettingsUpdater.xml
+/.idea/.idea.roadtoshaderdog/.idea/vcs.xml
+/.idea/inspectionProfiles/profiles_settings.xml
+/.idea/modules.xml
+/.idea/roadtoshaderdog.iml
+/.idea/vcs.xml

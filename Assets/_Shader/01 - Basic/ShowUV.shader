@@ -54,7 +54,7 @@
                 fixed4 col = tex2D(_MainTex, i.uv);
                 // return fixed4(0.0, 0.0, i.color.b, 1.0);
                 // return fixed4(i.color);
-                return fixed4(1.0 - i.uv.x, 0.0, 0.0, 1.0);
+                return fixed4(i.uv.y, 0.0, 0.0, 1.0);
                 return fixed4(i.uv, 0.0, 1.0);
                 // apply fog
                 UNITY_APPLY_FOG(i.fogCoord, col);

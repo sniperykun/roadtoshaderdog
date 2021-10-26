@@ -8,9 +8,14 @@ public class RoadToShaderDog : MonoBehaviour
     {
         Debug.Log("RoadToShaderDog Start()");
     }
+
+    void Awake()
+    {
+        Debug.Log("RoadToShaderDog Awake()");
+    }
+
     void Update()
     {
-        
     }
 
     void OnDestroy()

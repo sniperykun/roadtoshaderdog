@@ -27,6 +27,12 @@ struct appdata_full {
 };
 */
 
+// DataTypesAndPrecision
+// https://docs.unity3d.com/Manual/SL-DataTypesAndPrecision.html
+// float 32bits
+// half 16 bits
+// fixed 11 bits
+
 Shader "roadtoshaderdog/BasicShaderSkeleton"
 {
     Properties
@@ -58,7 +64,6 @@ Shader "roadtoshaderdog/BasicShaderSkeleton"
             #pragma fragment frag
 
             // include other cg shader files
-            #include "UnityCG.cginc"
             #include "Lighting.cginc"
             #include "AutoLight.cginc"
 
