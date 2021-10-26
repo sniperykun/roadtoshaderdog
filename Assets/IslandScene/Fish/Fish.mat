@@ -7,8 +7,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Material_Flag
-  m_Shader: {fileID: 4800000, guid: cb23ebbd1ff2ab843b5147a4364b998f, type: 3}
+  m_Name: Fish
+  m_Shader: {fileID: 4800000, guid: 9582660b0d2a7db47b05b7671e328ac2, type: 3}
   m_ShaderKeywords: 
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
@@ -40,7 +40,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
-        m_Texture: {fileID: 2800000, guid: c9231b186ae5e3f40b0e239756ad63e3, type: 3}
+        m_Texture: {fileID: 2800000, guid: 07902d62a42151f4fa85fe40760bfdc7, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MetallicGlossMap:
@@ -67,15 +67,16 @@ Material:
     - _Mode: 0
     - _OcclusionStrength: 1
     - _Parallax: 0.02
-    - _RadialPush: -0.28
-    - _SineAmplitude: 0.08
-    - _SineFrequency: 16
-    - _SineSpeed: 20
+    - _RadialPush: 0
+    - _SineAmplitude: 0.02
+    - _SineFrequency: 10.5
+    - _SineSpeed: 17.91
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1
     - _UVSec: 0
+    - _WobbleMaskPower: 1.3
     - _ZWrite: 1
     m_Colors:
-    - _Color: {r: 0.043137256, g: 0.043137256, b: 0.043137256, a: 1}
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}

@@ -1,4 +1,4 @@
-﻿Shader "roadtoshaderdog/island/Flag"
+﻿Shader "roadtoshaderdog/island/Fish"
 {
     Properties
     {
@@ -7,7 +7,9 @@
         _SineFrequency("Sine Frequency", Float) = 1.0
         _SineSpeed("Sine Speed", Float) = 4.0
         _SineAmplitude("Sine Amplitude", Float) = 1.0
+        _WobbleMaskPower("Wobble Mask Power", Float) = 1.0
     }
+    
     SubShader
     {
         Tags { "RenderType"="Opaque" }
@@ -25,6 +27,7 @@
             float _SineFrequency;
             float _SineSpeed;
             float _SineAmplitude;
+            float _WobbleMaskPower;
 
             sampler2D _MainTex;
             float4 _MainTex_ST;
@@ -49,18 +52,17 @@
 
                 // sine wave define in object space
                 // https://en.wikipedia.org/wiki/Sine_wave
-                float x = objPos.x;
+                // make local position sine wave care about the axis compare to Flag's shader
+                // use UV's Mask gradient!!!
+                float x = objPos.z;
                 float f = x * _SineFrequency;
                 float f2 = _SineSpeed * _Time.y;
                 float f3 = sin(f + f2) * (v.uv.x) * _SineAmplitude;
+                
+                f3 = mathlab_sineWave(x, _SineFrequency, _SineAmplitude, _SineSpeed, _Time.y) * pow(v.uv.x, _WobbleMaskPower);
+                objPos.x += f3;
 
-                // make offset
-                // f3 = mathlab_sineWave(x, _SineFrequency, _SineAmplitude, _SineSpeed, _Time.y) * saturate((v.uv.x - 0.1));
-                // sine wave [smaller ----> bigger]
-                f3 = mathlab_sineWave(x, _SineFrequency, _SineAmplitude, _SineSpeed, _Time.y) * v.uv.x;
-                objPos.z += f3;
-
-                // f(x) = (1 - x) * x
+                // f(x) = (1 - x) * x => math geogebra.org to see the graphic of f(x)
                 float f4 = ( 1.0 - v.uv.y) * v.uv.y;
                 f4 *= _RadialPush;
                 objPos.x += f4;
