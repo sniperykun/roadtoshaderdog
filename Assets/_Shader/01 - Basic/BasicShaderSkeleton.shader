@@ -111,6 +111,10 @@ Shader "roadtoshaderdog/BasicShaderSkeleton"
 
                 // vertex program uses the TRANSFORM_TEX macro from UnityCG.cginc to make sure texture scale and offset is applied correctly, 
                 // and fragment program just samples the texture and multiplies by the color property.
+                // // #define TRANSFORM_TEX(tex,name) (tex.xy * name##_ST.xy + name##_ST.zw)
+                // ST.XY : tilling
+                // ST:ZW : offset
+                // get right uv with tilling and offset
                 o.uv = TRANSFORM_TEX(v.texcoord.xy, _MainTex);
 
                 // input world normal

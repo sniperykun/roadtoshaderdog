@@ -26,7 +26,7 @@
 
             #include "UnityCG.cginc"
             #include "Lighting.cginc"
-
+            #include "../CGMathLab.cginc"
             struct appdata
             {
                 float4 vertex : POSITION;
@@ -47,32 +47,7 @@
             float _WindStrength;
             float _WindDensity;
 
-            void Unity_TilingAndOffset_float(float2 UV, float2 Tiling, float2 Offset, out float2 Out)
-            {
-                Out = UV * Tiling + Offset;
-            }
-
-            float2 unity_gradientNoise_dir(float2 p)
-            {
-                // Permutation and hashing used in webgl-nosie goo.gl/pX7HtC
-                p = p % 289;
-                float x = (34 * p.x + 1) * p.x % 289 + p.y;
-                x = (34 * x + 1) * x % 289;
-                x = frac(x / 41) * 2 - 1;
-                return normalize(float2(x - floor(x + 0.5), abs(x) - 0.5));
-            }
             
-            float unity_gradientNoise(float2 p)
-            {
-                float2 ip = floor(p);
-                float2 fp = frac(p);
-                float d00 = dot(unity_gradientNoise_dir(ip), fp);
-                float d01 = dot(unity_gradientNoise_dir(ip + float2(0, 1)), fp - float2(0, 1));
-                float d10 = dot(unity_gradientNoise_dir(ip + float2(1, 0)), fp - float2(1, 0));
-                float d11 = dot(unity_gradientNoise_dir(ip + float2(1, 1)), fp - float2(1, 1));
-                fp = fp * fp * fp * (fp * (fp * 6 - 15) + 10);
-                return lerp(lerp(d00, d01, fp.y), lerp(d10, d11, fp.y), fp.x);
-            }
 
             v2f vert (appdata v)
             {
@@ -83,8 +58,8 @@
                 float2 offset = _Time.y.xx * _WindSpeed;
 
                 float2 outvalue;
-                Unity_TilingAndOffset_float(ff, float2(1, 1), offset, outvalue);
-                float fnoise = unity_gradientNoise(outvalue * _WindDensity);    
+                mathlab_TilingAndOffset_float(ff, float2(1, 1), offset, outvalue);
+                float fnoise = mathlab_gradientNoise(outvalue * _WindDensity);    
                 fnoise *= _WindStrength;
 
                 float xoffset = worldPos.x + fnoise;
