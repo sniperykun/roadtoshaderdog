@@ -49,15 +49,15 @@
 
                 // sine wave define in object space
                 // https://en.wikipedia.org/wiki/Sine_wave
-                float x = objPos.x;
-                float f = x * _SineFrequency;
+                float inputx = objPos.x;
+                float f = inputx * _SineFrequency;
                 float f2 = _SineSpeed * _Time.y;
                 float f3 = sin(f + f2) * (v.uv.x) * _SineAmplitude;
 
                 // make offset
                 // f3 = mathlab_sineWave(x, _SineFrequency, _SineAmplitude, _SineSpeed, _Time.y) * saturate((v.uv.x - 0.1));
                 // sine wave [smaller ----> bigger]
-                f3 = mathlab_sineWave(x, _SineFrequency, _SineAmplitude, _SineSpeed, _Time.y) * v.uv.x;
+                f3 = mathlab_sineWave(inputx, _SineFrequency, _SineAmplitude, _SineSpeed, _Time.y) * v.uv.x;
                 objPos.z += f3;
 
                 // f(x) = (1 - x) * x

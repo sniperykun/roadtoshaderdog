@@ -3,7 +3,6 @@
     Properties
     {
         _MainTex ("Texture", 2D) = "white" {}
-        _RadialPush("Radia Push", Float) = 0
         _SineFrequency("Sine Frequency", Float) = 1.0
         _SineSpeed("Sine Speed", Float) = 4.0
         _SineAmplitude("Sine Amplitude", Float) = 1.0
@@ -23,7 +22,6 @@
             #include "UnityCG.cginc"
             #include "../CGMathLab.cginc"
 
-            float _RadialPush;
             float _SineFrequency;
             float _SineSpeed;
             float _SineAmplitude;
@@ -54,18 +52,18 @@
                 // https://en.wikipedia.org/wiki/Sine_wave
                 // make local position sine wave care about the axis compare to Flag's shader
                 // use UV's Mask gradient!!!
-                float x = objPos.z;
-                float f = x * _SineFrequency;
-                float f2 = _SineSpeed * _Time.y;
-                float f3 = sin(f + f2) * (v.uv.x) * _SineAmplitude;
-                
-                f3 = mathlab_sineWave(x, _SineFrequency, _SineAmplitude, _SineSpeed, _Time.y) * pow(v.uv.x, _WobbleMaskPower);
-                objPos.x += f3;
 
-                // f(x) = (1 - x) * x => math geogebra.org to see the graphic of f(x)
-                float f4 = ( 1.0 - v.uv.y) * v.uv.y;
-                f4 *= _RadialPush;
-                objPos.x += f4;
+                // no-magic
+                // float finput = objPos.z;
+                // magic happened!!!
+                float finput = objPos.z + objPos.y;
+                // float f = finput * _SineFrequency;
+                // float f2 = _SineSpeed * _Time.y;
+                // float f3 = sin(f + f2) * _SineAmplitude;
+                float f3 = mathlab_sineWave(finput, _SineFrequency, _SineAmplitude, _SineSpeed, _Time.y);
+                float ff = objPos.x + f3;
+                float3 calpos = float3(ff, objPos.y, objPos.z);
+                objPos = lerp(objPos, calpos, pow(v.uv.x, _WobbleMaskPower));
 
                 o.vertex = UnityObjectToClipPos(objPos);
                 // #define TRANSFORM_TEX(tex,name) (tex.xy * name##_ST.xy + name##_ST.zw)
