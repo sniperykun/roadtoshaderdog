@@ -55,7 +55,6 @@ Shader "roadtoshaderdog/BasicShaderSkeleton"
         LOD 100
         Pass
         {
-
             Cull Back
             ZTest LEqual
 
@@ -137,6 +136,7 @@ Shader "roadtoshaderdog/BasicShaderSkeleton"
                 // world space tangent
                 o.tangent = normalize(mul(unity_ObjectToWorld, float4_t(v.tangent.xyz, 0)).xyz);
                 // world space binormal
+                // w for the sign
                 // when need to * w or / w
                 o.binormal = normalize(cross(o.normal, o.tangent) * v.tangent.w);
                 return o;
@@ -147,18 +147,21 @@ Shader "roadtoshaderdog/BasicShaderSkeleton"
             {
                 // sample the texture
                 fixed4 diffSamplerColor = tex2D(_MainTex, i.uv);
+                // return diffSamplerColor;
                 // sample tangent space normal ([-1,1]===>[0,1])
-                float3_t normalVec = normalize(tex2D(_NormalMap, i.uv).xyz * 2.0 - 1.0);
+                // float3_t normalVec = normalize(tex2D(_NormalMap, i.uv).xyz * 2.0 - 1.0);
+                float3_t normalVec = UnpackNormal(tex2D(_NormalMap, i.uv));
+                // return fixed4(normalVec, 1.0);
                 // TBN Matrix : convert tangent space normal(map) to world space
                 float3x3_t localToWorldTranspose = float3x3_t(
                     i.tangent,
                     i.binormal,
                     i.normal
                 );
-
-                normalVec = normalize(mul(normalVec, localToWorldTranspose));
-                float3_t ambient = UNITY_LIGHTMODEL_AMBIENT.xyz * diffSamplerColor;
                 
+                normalVec = normalize(mul(normalVec, localToWorldTranspose));
+                // return fixed4(normalVec, 1.0);
+                float3_t ambient = UNITY_LIGHTMODEL_AMBIENT.xyz * diffSamplerColor;
                 // A - B = A point towards B vector
                 // 
                 // In World Space (lighting calculation)
@@ -186,6 +189,8 @@ Shader "roadtoshaderdog/BasicShaderSkeleton"
                 fresnel = saturate(1.0 - fresnel);
                 fresnel = pow(fresnel, _FresnelExponent);
                 fixed3 fresnelColor = fresnel * _FresnelColor;
+
+                // (ambient + diffuse + specular + fresnelColor)
                 return fixed4(ambient + diffuse + specular + fresnelColor, 1.0);
             }
             ENDCG

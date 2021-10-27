@@ -68,7 +68,7 @@ Material:
     - _OcclusionStrength: 1
     - _Parallax: 0.02
     - _RadialPush: 0
-    - _SineAmplitude: 0.16
+    - _SineAmplitude: 0.25
     - _SineFrequency: 1.42
     - _SineSpeed: 5.76
     - _SmoothnessTextureChannel: 0
@@ -76,7 +76,7 @@ Material:
     - _SrcBlend: 1
     - _UVSec: 0
     - _WobbleDistance: 42.61
-    - _WobbleMaskPower: 3.22
+    - _WobbleMaskPower: 2.38
     - _ZWrite: 1
     m_Colors:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
