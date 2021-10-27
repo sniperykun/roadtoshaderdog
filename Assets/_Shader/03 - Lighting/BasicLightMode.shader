@@ -1,4 +1,6 @@
-﻿Shader "roadtoshaderdog/lighting/BasicLightMode"
+﻿// Upgrade NOTE: replaced 'mul(UNITY_MATRIX_MVP,*)' with 'UnityObjectToClipPos(*)'
+
+Shader "roadtoshaderdog/lighting/BasicLightMode"
 {
     Properties
     {
@@ -13,15 +15,23 @@
     {
         Tags { "RenderType"="Opaque" }
         LOD 100
-
+        
+        // forward base shader
         Pass
         {
+            Tags 
+            { 
+                "LightMode" = "ForwardBase"
+            }
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
             #include "UnityCG.cginc"
             #include "Lighting.cginc"
-            
+
+            #pragma multi_compile_fwdbase nolightmap nodirlightmap nodynlightmap novertexlight
+            #include "AutoLight.cginc"
+
             struct appdata
             {
                 float4 vertex : POSITION;
@@ -32,13 +42,14 @@
 
             struct v2f
             {
-                float4 vertex   : POSITION;
+                float4 pos   : SV_POSITION;
                 float2 uv       : TEXCOORD0;
                 float3 eyeDir   : TEXCOORD1;
                 float3 lightDir : TEXCOORD2;
                 float3 normal   : TEXCOORD3;
                 float3 tangent  : TEXCOORD4;
                 float3 binormal : TEXCOORD5;
+                SHADOW_COORDS(6)
                 // half3 worldPos  : TEXCOORD6;
             };
 
@@ -54,7 +65,7 @@
             v2f vert (appdata v)
             {
                 v2f o;
-                o.vertex = UnityObjectToClipPos(v.vertex);
+                o.pos = UnityObjectToClipPos(v.vertex);
                 o.uv = TRANSFORM_TEX(v.uv, _MainTex);
 
                 o.normal = UnityObjectToWorldNormal(v.normal);
@@ -68,6 +79,7 @@
                 half tangentSign = v.tangent.w * unity_WorldTransformParams.w;
                 // we create binormal in vertex shader
                 o.binormal = cross(o.normal, o.tangent.xyz) * tangentSign;
+                TRANSFER_SHADOW(o);
                 return o;
             }
 
@@ -106,8 +118,35 @@
                 half3 specularcolor = half3(specularSamplercolor.a, specularSamplercolor.a, specularSamplercolor.a);
                 // return fixed4(specularcolor, 1.0);
                 specularcolor = specularcolor * _SpecularColor * spevalue;
-                return fixed4(diffuseColor + specularcolor, 1.0);
-                return fixed4(diffuseColor, 1.0);
+
+                fixed shadow = SHADOW_ATTENUATION(i);
+                return fixed4(diffuseColor * shadow + specularcolor, 1.0);
+            }
+            ENDCG
+        }
+        
+        // pass for shadow caster
+        Pass
+        {
+            Tags{"LightMode" = "ShadowCaster"}
+            CGPROGRAM
+            #pragma vertex vert
+			#pragma fragment frag
+
+            #include "UnityCG.cginc"
+
+            struct appdata {
+	            float4 position : POSITION;
+            };
+
+            float4 vert (appdata v) : SV_POSITION
+            {
+	            return UnityObjectToClipPos(v.position);
+            }
+
+            half4 frag () : SV_TARGET
+            {
+	            return 0;
             }
             ENDCG
         }
