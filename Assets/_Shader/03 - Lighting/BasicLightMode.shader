@@ -121,6 +121,7 @@ Shader "roadtoshaderdog/lighting/BasicLightMode"
 
                 fixed shadow = SHADOW_ATTENUATION(i);
                 return fixed4(diffuseColor * shadow + specularcolor, 1.0);
+                // return fixed4(diffuseColor + specularcolor, 1.0);
             }
             ENDCG
         }
@@ -141,7 +142,10 @@ Shader "roadtoshaderdog/lighting/BasicLightMode"
 
             float4 vert (appdata v) : SV_POSITION
             {
-	            return UnityObjectToClipPos(v.position);
+	            float4 position = UnityObjectToClipPos(v.position);
+                // return position;
+                // need apply shadow bias offset
+                return UnityApplyLinearShadowBias(position);
             }
 
             half4 frag () : SV_TARGET
