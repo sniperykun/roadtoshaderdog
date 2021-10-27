@@ -111,8 +111,17 @@ Shader "roadtoshaderdog/lighting/BasicLightMode"
                 half3 viewDir = i.eyeDir;
                 half3 lightDir = i.lightDir;
 
+                // phong light model
+                #ifndef PHONE_LIGHt_MODEL
                 fixed3 reflectdir = reflect(-lightDir, normalVec);
                 float spevalue = pow(saturate(dot(viewDir, reflectdir)), _Gloss);
+                #else
+                // blinn-phong light model
+                half3 hVector = normalize(viewDir + lightDir);
+                float spevalue = pow(saturate(dot(hVector, normalVec)), _Gloss);
+                #endif
+                
+
                 half4 specularSamplercolor = tex2D(_SpecularTex, i.uv);
                 // specular saved in alpha channel
                 half3 specularcolor = half3(specularSamplercolor.a, specularSamplercolor.a, specularSamplercolor.a);
