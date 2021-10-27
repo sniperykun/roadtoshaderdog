@@ -148,7 +148,9 @@ Shader "roadtoshaderdog/BasicShaderSkeleton"
                 // sample the texture
                 fixed4 diffSamplerColor = tex2D(_MainTex, i.uv);
                 // return diffSamplerColor;
-                // sample tangent space normal ([-1,1]===>[0,1])
+                // color [0,1]
+                // map need to [-1,1]
+                // sample tangent space normal ([0,1]===>[-1,1])
                 // float3_t normalVec = normalize(tex2D(_NormalMap, i.uv).xyz * 2.0 - 1.0);
                 float3_t normalVec = UnpackNormal(tex2D(_NormalMap, i.uv));
                 // return fixed4(normalVec, 1.0);
