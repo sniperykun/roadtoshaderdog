@@ -47,7 +47,7 @@ Shader "roadtoshaderdog/BasicShaderSkeleton"
     }
     SubShader
     {
-        Tags 
+        Tags
         { 
             "RenderType"="Opaque" 
             "LightMode" = "ForwardBase"
