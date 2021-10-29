@@ -65,7 +65,6 @@ Shader "roadtoshaderdog/BasicShaderSkeleton"
             // include other cg shader files
             #include "Lighting.cginc"
             #include "AutoLight.cginc"
-
             #include "UnityCG.cginc"
 
             // Structure from vertex shader to fragment shader
@@ -138,7 +137,7 @@ Shader "roadtoshaderdog/BasicShaderSkeleton"
                 // world space binormal
                 // w for the sign
                 // when need to * w or / w
-                o.binormal = normalize(cross(o.normal, o.tangent) * v.tangent.w);
+                o.binormal = normalize(cross(o.normal, o.tangent) * v.tangent.w * unity_WorldTransformParams.w);
                 return o;
             }
 

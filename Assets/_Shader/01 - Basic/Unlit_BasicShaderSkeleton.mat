@@ -33,7 +33,7 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Floats:
     - _BumpScale: 1
-    - _FresnelExponent: 1.02
+    - _FresnelExponent: 3.2
     - _Gloss: 70
     m_Colors:
     - _FresnelColor: {r: 1, g: 0.042452812, b: 0.750638, a: 1}

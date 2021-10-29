@@ -86,13 +86,13 @@ Shader "roadtoshaderdog/lighting/BasicLightMode-Blinn-Phong"
                 o.pos = UnityObjectToClipPos(v.vertex);
                 o.uv = TRANSFORM_TEX(v.uv, _MainTex);
 
-                o.normal = UnityObjectToWorldNormal(v.normal);
-                float3 worldPos = mul(unity_ObjectToWorld, v.vertex);
+                float3 worldPos = mul(unity_ObjectToWorld, v.vertex).xyz;
                 o.eyeDir = normalize(UnityWorldSpaceViewDir(worldPos));
                 // o.worldPos = worldPos;
                 // Directional lights[_WorldSpaceLightPos0]
                 o.lightDir = normalize(UnityWorldSpaceLightDir(worldPos));
-                o.tangent = UnityObjectToWorldDir(v.tangent.xyz);
+                o.normal = UnityObjectToWorldNormal(v.normal);
+                o.tangent.xyz = UnityObjectToWorldDir(v.tangent.xyz);
 
                 // w is usually 1.0, or -1.0 for odd-negative scale transforms
                 half tangentSign = v.tangent.w * unity_WorldTransformParams.w;
@@ -106,22 +106,41 @@ Shader "roadtoshaderdog/lighting/BasicLightMode-Blinn-Phong"
             {
                 // sample the texture
                 fixed4 col = tex2D(_MainTex, i.uv);
-                half3 normalVec = UnpackNormal(tex2D(_NormalMap, i.uv));
+                half3 tangentSpaceNormal = UnpackNormal(tex2D(_NormalMap, i.uv));
+                half3 worldNormal;
+
+                float3 vff01 = float3(i.tangent.x, i.binormal.x, i.normal.x);
+                float3 vff02 = float3(i.tangent.y, i.binormal.y, i.normal.y);
+                float3 vff03 = float3(i.tangent.z, i.binormal.z, i.normal.z);
+                
+                worldNormal.x = dot(vff01, tangentSpaceNormal);
+                worldNormal.y = dot(vff02, tangentSpaceNormal);
+                worldNormal.z = dot(vff03, tangentSpaceNormal);
+                
                 // Build Matrix
                 // float3x3(first column, second column, thired column)
                 // build transformation with three basis vector(normal, tangent, binormal)
-                float3x3 tangentSpaceToWorldSpace = float3x3(
+                half3x3 tangentSpaceToWorldSpace = half3x3(
                     i.tangent,
                     i.binormal,
                     i.normal);
                 
                 // convert normal texture's normal rotate to world normal
-                normalVec = normalize(mul(normalVec, tangentSpaceToWorldSpace));
+                // worldNormal = normalize(mul(tangentSpaceNormal, tangentSpaceToWorldSpace));
+                // must be this
+                // https://forum.unity.com/threads/mul-function-and-matrices.445266/
+                // worldNormal = normalize(mul(tangentSpaceNormal, tangentSpaceToWorldSpace));
+
+                // return fixed4(normalVec, 1.0);
                 fixed3 diffuseColor = tex2D(_MainTex, i.uv);
+                // return fixed4(normalVec, 1.0);
+                // return fixed4(diffuseColor, 1.0);
                 diffuseColor = _LightColor0.rgb
                     * diffuseColor
-                    * max(0, dot(normalVec, i.lightDir))
+                    * max(0, dot(worldNormal, i.lightDir))
                     * _AlbedoColor;
+
+                // return fixed4(diffuseColor, 1.0);
 
                 // SKY_BOX_COLOR REFLECTION
                 // Specular
@@ -135,12 +154,12 @@ Shader "roadtoshaderdog/lighting/BasicLightMode-Blinn-Phong"
 
                 // phong light model
                 #ifndef PHONE_LIGHt_MODEL
-                    fixed3 reflectdir = reflect(-lightDir, normalVec);
+                    fixed3 reflectdir = reflect(-lightDir, worldNormal);
                     float spevalue = pow(saturate(dot(viewDir, reflectdir)), _Gloss);
                 #else
                     // blinn-phong light model
                     half3 hVector = normalize(viewDir + lightDir);
-                    float spevalue = pow(saturate(dot(hVector, normalVec)), _Gloss);
+                    float spevalue = pow(saturate(dot(hVector, worldNormal)), _Gloss);
                 #endif
 
                 half4 specularSamplercolor = tex2D(_SpecularTex, i.uv);
@@ -148,8 +167,9 @@ Shader "roadtoshaderdog/lighting/BasicLightMode-Blinn-Phong"
                 half3 specularcolor = half3(specularSamplercolor.a, specularSamplercolor.a, specularSamplercolor.a);
                 // return fixed4(specularcolor, 1.0);
                 specularcolor = specularcolor * _SpecularColor * spevalue;
-
+                // return fixed4(worldNormal, 1.0);
                 fixed shadow = SHADOW_ATTENUATION(i);
+                // return fixed4(i.binormal, 1.0);
                 return fixed4(diffuseColor * shadow + specularcolor, 1.0);
             }
             ENDCG
