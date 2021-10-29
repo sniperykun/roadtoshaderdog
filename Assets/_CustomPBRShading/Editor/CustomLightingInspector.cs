@@ -271,7 +271,7 @@ public class CustomLightingInspector : ShaderGUI
             DoEmissionArea(material);
             EditorGUI.BeginChangeCheck();
             m_MaterialEditor.TextureScaleOffsetProperty(albedoMap);
-            if (EditorGUI.EndChangeCheck())
+            if (EditorGUI.EndChangeCheck()) 
                 emissionMap.textureScaleAndOffset = albedoMap.textureScaleAndOffset;
             EditorGUILayout.Space(20);
 
