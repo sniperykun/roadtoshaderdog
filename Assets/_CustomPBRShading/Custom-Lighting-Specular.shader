@@ -48,7 +48,8 @@
     }
     
     CGINCLUDE
-    
+        // define something here
+        // #define UNITY_SETUP_BRDF_INPUT SpecularSetup
     ENDCG
 
     SubShader
@@ -66,27 +67,19 @@
             
             CGPROGRAM
 
-            // _ALPHATEST_ON
-            // _ALPHABLEND_ON
-            // _ALPHAPREMULTIPLY_ON
-
             // shader3.0 here
             #pragma target 3.0
             // shader keywords
-            #pragma shader_feature _RENDERING_CUTOUT _RENDERING_FADE _RENDERING_TRANSPARENT
-            #pragma shader_feature _NORMAL_MAP
-            #pragma shader_feature _OCCLUSION_MAP
+            // use _local shader
+            #pragma shader_feature_local _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
+            #pragma shader_feature_local _NORMAL_MAP
             #pragma shader_feature _EMISSION_MAP
-            #pragma shader_feature _DETAIL_MASK
-            #pragma shader_feature _DETAIL_ALBEDO_MAP
-            #pragma shader_feature _DETAIL_NORMAL_MAP
-            // if smoothness saved in albedo's alpha
-            #pragma shader_feature _SMOOTHNESS_ALBEDO
-            #pragma shader_feature _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
-            // if smoothness saved in metaillic's alpha
-            #pragma shader_feature _METALLIC_MAP
-            #pragma shader_feature _HEROSPECGLOS_SMAP
-            #pragma shader_feature _SMOOTHNESS_METALLIC
+            #pragma shader_feature_local _DETAIL_MULX2
+            #pragma shader_feature_local _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
+            
+            #pragma shader_feature_local _SPECULARHIGHLIGHTS_OFF
+            #pragma shader_feature_local _GLOSSYREFLECTIONS_OFF
+            
             #pragma vertex custom_vertexBase
             #pragma fragment custom_fragBase 
 
@@ -97,6 +90,7 @@
 
             #include "UnityCG.cginc"
             #include "Custom-Light-Core.cginc"
+            
             ENDCG
         }
     }

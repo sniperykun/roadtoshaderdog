@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEditor;
 using UnityEngine.Rendering;
 using System;
+using System.ComponentModel;
 using NUnit.Framework.Internal.Commands;
 
 //
@@ -21,7 +22,7 @@ public class CustomLightingInspector : ShaderGUI
     public enum SmoothnessMapChannel
     {
         Uniform,
-        AlbedoAlpha, // albedo alpha
+        AlbedoAlpha,            // albedo alpha
         SpecularMetaillicAlpha, // specular/metaillic alpha
     }
 
@@ -271,9 +272,9 @@ public class CustomLightingInspector : ShaderGUI
             DoEmissionArea(material);
             EditorGUI.BeginChangeCheck();
             m_MaterialEditor.TextureScaleOffsetProperty(albedoMap);
-            if (EditorGUI.EndChangeCheck()) 
+            if (EditorGUI.EndChangeCheck())
                 emissionMap.textureScaleAndOffset = albedoMap.textureScaleAndOffset;
-            EditorGUILayout.Space(20);
+            EditorGUILayout.Space(10);
 
             // Secondary properties
             GUILayout.Label(Styles.secondaryMapsText, EditorStyles.boldLabel);
@@ -429,5 +430,41 @@ public class CustomLightingInspector : ShaderGUI
     // Switch Work Flow
     static void SetMaterialKeywords(Material material, WorkflowMode workflowMode)
     {
+        // Note: keywords must be based on Material value not on MaterialProperty due to multi-edit & material animation
+        // (MaterialProperty value might come from renderer material property block)
+        SetKeyWord(material, "_NORMAL_MAP", material.GetTexture("_BumpMap") || material.GetTexture("_DetailNormalMap"));
+        if (workflowMode == WorkflowMode.Specular)
+        {
+            // Specular Gloss Map
+            SetKeyWord(material, "_SPECGLOSSMAP", material.GetTexture("_SpecGlossMap"));
+        }
+        else if (workflowMode == WorkflowMode.Metallic)
+        {
+            // Metallic Gloss Map
+            SetKeyWord(material, "_METALLICGLOSSMAP", material.GetTexture("_MetallicGlossMap"));
+        }
+
+        SetKeyWord(material, "_DETAIL_MULX2",
+            material.GetTexture("_DetailAlbedoMap") || material.GetTexture("_DetailNormalMap"));
+        // A material's GI flag internally keeps track of whether emission is enabled at all, it's enabled but has no effect
+        // or is enabled and may be modified at runtime. This state depends on the values of the current flag and emissive color.
+        // The fixup routine makes sure that the material is in the correct state if/when changes are made to the mode or color.
+        MaterialEditor.FixupEmissiveFlag(material);
+        bool shouldEmissionBeEnabled = (material.globalIlluminationFlags & MaterialGlobalIlluminationFlags.EmissiveIsBlack) == 0;
+        SetKeyWord(material, "_EMISSION", shouldEmissionBeEnabled);
+        
+        if (material.HasProperty("_SmoothnessTextureChannel"))
+        {
+            SetKeyWord(material, "_SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A", GetSmoothnessMapChannel(material) == SmoothnessMapChannel.AlbedoAlpha);
+        }
+    }
+
+    static SmoothnessMapChannel GetSmoothnessMapChannel(Material material)
+    {
+        int ch = (int)material.GetFloat("_SmoothnessTextureChannel");
+        if (ch == (int)SmoothnessMapChannel.AlbedoAlpha)
+            return SmoothnessMapChannel.AlbedoAlpha;
+        else
+            return SmoothnessMapChannel.SpecularMetaillicAlpha;
     }
 }

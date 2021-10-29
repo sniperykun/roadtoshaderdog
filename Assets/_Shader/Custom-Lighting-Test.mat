@@ -9,7 +9,7 @@ Material:
   m_PrefabAsset: {fileID: 0}
   m_Name: Custom-Lighting-Test
   m_Shader: {fileID: 4800000, guid: c9057c9d807bfbb4792ccd41419e7436, type: 3}
-  m_ShaderKeywords: 
+  m_ShaderKeywords: _NORMAL_MAP _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0

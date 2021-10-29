@@ -110,46 +110,14 @@ float3 GetTangentSpaceNormal(VertexToFragmentData i)
     return normal;
 }
 
-// Save in R channel
-float GetMetallic(VertexToFragmentData i)
-{
-    #ifdef _METALLIC_MAP
-        return tex2D(_MetallicMap, i.uv.xy).r;
-    #else
-    return _Metallic;
-    #endif
-}
-
-float GetSmoothness(VertexToFragmentData i)
-{
-    float smoothness = 1;
-    #if defined(_SMOOTHNESS_ALBEDO)
-        smoothness = tex2D(_MainTex, i.uv.xy).a;
-    #elif defined(_SMOOTHNESS_METALLIC) && defined(_METALLIC_MAP)
-        smoothness = tex2D(_METALLIC_MAP, i.uv.xy).a;
-    #endif
-    return 1.0;
-    // return smoothness * _sm;
-}
-
-// save occ in AO's alpha
-float GetOcclusion(VertexToFragmentData i)
-{
-    #if defined(_OCCLUSION_MAP)
-        return lerp(1, tex2D(_OcclusionMap, i.uv.xy).g, _OcclusionStrength);
-    #else
-        return 1;
-    #endif
-}
-
 float3 GetEmission(VertexToFragmentData i)
 {
     #ifdef CUSTOM_FORWARD_BASE_PASS
-    #ifdef _EMISSION_MAP
-    return tex2D(_EmissionMap, i.uv.xy) * _EmissionColor;
-    #else
+        #ifdef _EMISSION_MAP
+            return tex2D(_EmissionMap, i.uv.xy) * _EmissionColor;
+        #else
             return _EmissionColor;
-    #endif
+        #endif
     #else
         return 0;
     #endif
@@ -174,13 +142,6 @@ void ComputeVertexLightColor(inout VertexToFragmentData i)
         unity_4LightAtten0, i.worldPosition, i.normal
     );
     #endif
-}
-
-// why here to get binormal(per-vertex)
-float3 CreatePerVertexBinormal(float3 normal, float3 tangent, float binormalSign)
-{
-    // w is usually 1.0, or -1.0 for odd-negative scale transforms
-    return cross(normal, tangent.xyz) * (binormalSign * unity_WorldTransformParams.w);
 }
 
 // Simple Create UnityLight Struct
@@ -288,7 +249,16 @@ void CalculateFragmentWorldNormal(inout VertexToFragmentData i)
     i.normal = worldNormal;
 }
 
-// vertex function
+// How to Structure Shader Code
+// ------------------------------------------------------------------
+//  Base forward pass (directional light, emission, lightmaps, ...)
+//  VertexOutputForwardBase
+
+// ------------------------------------------------------------------
+//  Additive forward pass (one light per pass)
+//  VertexOutputForwardAdd
+
+// vertex shading function
 VertexToFragmentData custom_vertexBase(VertexInputData v)
 {
     VertexToFragmentData o;
@@ -296,7 +266,7 @@ VertexToFragmentData custom_vertexBase(VertexInputData v)
     
     o.uv.xy = TRANSFORM_TEX(v.uv, _MainTex);
     o.uv.zw = TRANSFORM_TEX(v.uv, _DetailAlbedoMap);
-
+    
     o.tangent.xyz = UnityObjectToWorldDir(v.tangent.xyz);
     o.normal = UnityObjectToWorldNormal(v.normal);
     half binormalsign = v.tangent.w * unity_WorldTransformParams.w;
@@ -306,7 +276,7 @@ VertexToFragmentData custom_vertexBase(VertexInputData v)
     return o;
 }
 
-// fragment shading
+// fragment shading function
 fixed4 custom_fragBase(VertexToFragmentData i) : SV_Target
 {
     fixed3 albedo = GetAlbedo(i);
