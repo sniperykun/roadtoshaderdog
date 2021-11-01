@@ -55,10 +55,9 @@ struct VertexToFragmentData
     float3 tangent : TEXCOORD2;
     float3 binormal : TEXCOORD3;
     float3 worldPosition : TEXCOORD4;
-    float3 lightDir  : TEXCOORD5;
-    float3 eyeDir : TEXCOORD6;
-    half4 ambientOrLightmapUV : TEXCOORD7;    // SH or Lightmap UV
-    
+    float3 eyeDir : TEXCOORD5;
+    half4 ambientOrLightmapUV : TEXCOORD6;    // SH or Lightmap UV
+    SHADOW_COORDS(7)
     // per-vertex color calculate
     // #if defined(VERTEX_LIGHT_ON)
     // float3 vertexLightColor : TEXCOORD7;
@@ -441,10 +440,11 @@ VertexToFragmentData custom_vertexBase(VertexInputData v)
     half binormalsign = v.tangent.w * unity_WorldTransformParams.w;
     o.binormal = normalize(cross( o.normal, o.tangent.xyz)) * binormalsign;
     o.worldPosition = mul(unity_ObjectToWorld, v.vertex);
-    o.lightDir = normalize(UnityWorldSpaceLightDir(o.worldPosition));
 
     // camera  point to vertex world position
     o.eyeDir.xyz = normalize(o.worldPosition - _WorldSpaceCameraPos);
+
+    TRANSFER_SHADOW(o);
     return o;
 }
 
@@ -484,14 +484,15 @@ half4 fragForwardAddPass_Internal(VertexToFragmentData i)
 {
     FragmentCommonData s = FragmentSetUp(i);
     UNITY_LIGHT_ATTENUATION(atten, i, s.posWorld);
-    
+
+    half3 lightdir;
     #if defined(POINT) || defined(POINT_COOKIE) || defined(SPOT)
-        i.lightDir = normalize(_WorldSpaceLightPos0.xyz - i.worldPosition);
+        lightdir = normalize(_WorldSpaceLightPos0.xyz - i.worldPosition);
     #else
-        i.lightDir = _WorldSpaceLightPos0.xyz;
+        lightdir = _WorldSpaceLightPos0.xyz;
     #endif
     
-    UnityLight light  = AdditiveLight(i.lightDir, atten);
+    UnityLight light  = AdditiveLight(lightdir, atten);
     UnityIndirect noIndirect  =ZeroIndirect();
     half4 c = UNITY_BRDF_PBS (s.diffColor, s.specuColor, s.oneMinusReflectivity, s.smoothness, s.normalWorld, -s.eyeVec, light, noIndirect);
     // return fixed4(i.lightDir, 1.0);
@@ -512,10 +513,11 @@ VertexToFragmentData custom_vertAdd(VertexInputData v)
     half binormalsign = v.tangent.w * unity_WorldTransformParams.w;
     o.binormal = normalize(cross( o.normal, o.tangent.xyz)) * binormalsign;
     o.worldPosition = mul(unity_ObjectToWorld, v.vertex);
-    o.lightDir = normalize(UnityWorldSpaceLightDir(o.worldPosition));
 
     // camera  point to vertex world position
     o.eyeDir.xyz = normalize(o.worldPosition - _WorldSpaceCameraPos);
+
+    TRANSFER_SHADOW(o);
     return o;
 }
 

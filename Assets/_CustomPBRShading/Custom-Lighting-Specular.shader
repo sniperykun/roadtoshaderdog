@@ -73,6 +73,7 @@
             #pragma target 3.0
             // shader keywords
             // use _local shader
+            #pragma multi_compile _ SHADOWS_SCREEN
             #pragma shader_feature_local _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
             #pragma shader_feature_local _NORMAL_MAP
             #pragma shader_feature _EMISSION_MAP
@@ -89,7 +90,7 @@
             #pragma vertex custom_vertexBase
             #pragma fragment custom_fragBase
             
-            #include "UnityCG.cginc"
+            // #include "UnityCG.cginc"
             #include "Custom-Light-Core.cginc"
             
             ENDCG
@@ -129,11 +130,41 @@
             #pragma vertex custom_vertAdd
             #pragma fragment custom_fragAdd
             
-            #include "UnityCG.cginc"
+            // #include "UnityCG.cginc"
             #include "Custom-Light-Core.cginc"
             ENDCG
         }
+        
+         // pass for shadow caster
+        Pass
+        {
+            Name "Make-Shadow-Happen"
+            Tags{"LightMode" = "ShadowCaster"}
+            CGPROGRAM
+            #pragma vertex vert
+			#pragma fragment frag
+
+            #include "UnityCG.cginc"
+
+            struct appdata
+            {
+	            float4 position : POSITION;
+            };
+
+            float4 vert (appdata v) : SV_POSITION
+            {
+	            float4 position = UnityObjectToClipPos(v.position);
+                // return position;
+                // need apply shadow bias offset
+                return UnityApplyLinearShadowBias(position);
+            }
+            half4 frag () : SV_TARGET
+            {
+	            return 0;
+            }
+            ENDCG
+        }
     }
-    FallBack "VertexLit"
+    // FallBack "VertexLit"
     CustomEditor "CustomLightingInspector"
 }
