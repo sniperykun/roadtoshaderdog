@@ -369,11 +369,11 @@ inline UnityGI FragmentGI(FragmentCommonData s, half occlusion, half4 i_ambientO
     d.atten = atten;
 
     #if defined(LIGHTMAP_ON) || defined(DYNAMICLIGHTMAP_ON)
-    d.ambient = 0;
-    d.lightmapUV = i_ambientOrLightmapUV;
+        d.ambient = 0;
+        d.lightmapUV = i_ambientOrLightmapUV;
     #else
-    d.ambient = i_ambientOrLightmapUV.rgb;
-    d.lightmapUV = 0;
+        d.ambient = i_ambientOrLightmapUV.rgb;
+        d.lightmapUV = 0;
     #endif
 
     d.probeHDR[0] = unity_SpecCube0_HDR;
