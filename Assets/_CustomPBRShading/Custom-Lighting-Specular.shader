@@ -54,9 +54,11 @@
 
     SubShader
     {
+        // ------------------------------------------------------------------
+        //  Base forward pass (directional light, emission, lightmaps, ...)
         Pass
         {
-            Name "Custom-Lighting-FORWARD"
+            Name "Custom-Lighting-FORWARD-Base"
             Tags
             {
                 "LightMode" = "ForwardBase"
@@ -75,22 +77,60 @@
             #pragma shader_feature_local _NORMAL_MAP
             #pragma shader_feature _EMISSION_MAP
             #pragma shader_feature_local _DETAIL_MULX2
+            // if smoothness saved in albedo's alpha
             #pragma shader_feature_local _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
             
+            // specular workflow
+            #pragma shader_feature_local _SPECGLOSSMAP
             #pragma shader_feature_local _SPECULARHIGHLIGHTS_OFF
             #pragma shader_feature_local _GLOSSYREFLECTIONS_OFF
+            #pragma multi_compile DIRECTIONAL POINT SPOT
             
             #pragma vertex custom_vertexBase
-            #pragma fragment custom_fragBase 
-
-            #define CUSTOM_FORWARD_BASE_PASS
-            // #define VERTEX_LIGHT_ON
-            #define _NORMAL_MAP
-            // #define _DETAIL_NORMAL_MAP
-
+            #pragma fragment custom_fragBase
+            
             #include "UnityCG.cginc"
             #include "Custom-Light-Core.cginc"
             
+            ENDCG
+        }
+        // ------------------------------------------------------------------
+        //  Additive forward pass (one light per pass)
+        Pass
+        {
+            Name "Custom-Lighting-FORWARD-Add"
+            Tags 
+            {
+                "LightMode" = "ForwardAdd"
+            }
+            Blend [_SrcBlend] One
+
+            ZWrite Off
+            ZTest LEqual
+            
+            CGPROGRAM
+            #pragma target 3.0
+
+            #pragma shader_feature_local _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
+            #pragma shader_feature_local _NORMAL_MAP
+            #pragma shader_feature _EMISSION_MAP
+            #pragma shader_feature_local _DETAIL_MULX2
+            // if smoothness saved in albedo's alpha
+            #pragma shader_feature_local _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
+            
+            // specular workflow
+            #pragma shader_feature_local _SPECGLOSSMAP
+            #pragma shader_feature_local _SPECULARHIGHLIGHTS_OFF
+            #pragma shader_feature_local _GLOSSYREFLECTIONS_OFF
+            #pragma multi_compile DIRECTIONAL POINT SPOT
+
+            // #pragma multi_compile_fwdbase 
+
+            #pragma vertex custom_vertAdd
+            #pragma fragment custom_fragAdd
+            
+            #include "UnityCG.cginc"
+            #include "Custom-Light-Core.cginc"
             ENDCG
         }
     }

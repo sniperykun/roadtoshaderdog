@@ -1,7 +1,9 @@
 ﻿#ifndef CUSTOM_LIGHT_CORE
 #define CUSTOM_LIGHT_CORE
 
-#include "UnityLightingCommon.cginc"
+#include "UnityPBSLighting.cginc"
+#include "AutoLight.cginc"
+#include "UnityGlobalIllumination.cginc"
 
 // Custom Light Input
 half4       _Color;
@@ -54,10 +56,13 @@ struct VertexToFragmentData
     float3 binormal : TEXCOORD3;
     float3 worldPosition : TEXCOORD4;
     float3 lightDir  : TEXCOORD5;
+    float3 eyeDir : TEXCOORD6;
+    half4 ambientOrLightmapUV : TEXCOORD7;    // SH or Lightmap UV
+    
     // per-vertex color calculate
-    #if defined(VERTEX_LIGHT_ON)
-    float3 vertexLightColor : TEXCOORD6;
-    #endif
+    // #if defined(VERTEX_LIGHT_ON)
+    // float3 vertexLightColor : TEXCOORD7;
+    // #endif
 };
 
 // detail mask saved in alpha channel
@@ -70,29 +75,59 @@ float GetDetailMask(VertexToFragmentData i)
     #endif
 }
 
-// in UnityStandardUtils.cginc
-half3 BlendNormals(half3 n1, half3 n2)
+half3 GetAlbedo(VertexToFragmentData i)
 {
-    return normalize(half3(n1.xy + n2.xy, n1.z * n2.z));
-}
-
-fixed3 GetAlbedo(VertexToFragmentData i)
-{
-    fixed3 albedo = tex2D(_MainTex, i.uv.xy).rgb * _Color;
-    #ifndef _DETAIL_ALBEDO_MAP
+    half3 albedo = tex2D(_MainTex, i.uv.xy).rgb * _Color;
+    #ifndef _DETAIL_MULX2
         fixed3 details = tex2D(_DetailAlbedoMap, i.uv.zw) * unity_ColorSpaceDouble;
         albedo = lerp(albedo, albedo * details, GetDetailMask(i));
     #endif
     return albedo;
 }
 
-float GetAlpha(VertexToFragmentData i)
+half4 GetSpecularGloss(VertexToFragmentData i)
 {
-    float alpha = _Color.a;
-    #if !defined(_SMOOTHNESS_ALBEDO)
+    half4 sg;
+    #ifdef _SPECGLOSSMAP
+        #if defined(_SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A)
+            sg.rgb = tex2D(_SpecGlossMap, i.uv.xy).rgb;
+            sg.a = tex2D(_MainTex, i.uv.xy).a;
+        #else
+            sg = tex2D(_SpecGlossMap, i.uv.xy);
+        #endif
+        sg.a *= _GlossMapScale;
+    #else
+        sg.rgb = _SpecColor.rgb;
+        #ifdef _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
+            sg.a = tex2D(_MainTex, i.uv.xy).a * _GlossMapScale;
+        #else
+            sg.a = _Glossiness;
+        #endif
+    #endif
+    return sg;
+}
+
+half GetAlpha(VertexToFragmentData i)
+{
+    half alpha = _Color.a;
+    #if !defined(_SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A)
         alpha *= tex2D(_MainTex, i.uv.xy).a;
     #endif
+    return alpha;
 }
+
+half GetOcclusion(VertexToFragmentData i)
+{
+    #if (SHADER_TARGET < 30)
+        // SM20: instruction count limitation
+        // SM20: simpler occlusion
+        return tex2D(_OcclusionMap, i.uv.xy).g;
+    #else
+        half occ = tex2D(_OcclusionMap, i.uv.xy).g;
+        return LerpOneTo (occ, _OcclusionStrength);
+    #endif
+}
+
 
 // get tangent space normal(normal map sampler)
 float3 GetTangentSpaceNormal(VertexToFragmentData i)
@@ -110,16 +145,12 @@ float3 GetTangentSpaceNormal(VertexToFragmentData i)
     return normal;
 }
 
-float3 GetEmission(VertexToFragmentData i)
+half3 GetEmission(VertexToFragmentData i)
 {
-    #ifdef CUSTOM_FORWARD_BASE_PASS
-        #ifdef _EMISSION_MAP
-            return tex2D(_EmissionMap, i.uv.xy) * _EmissionColor;
-        #else
-            return _EmissionColor;
-        #endif
-    #else
+    #ifndef _EMISSION_MAP
         return 0;
+    #else
+        return tex2D(_EmissionMap, i.uv.xy).rgb * _EmissionColor.rgb;
     #endif
 }
 
@@ -180,32 +211,45 @@ else // point or spot light
 {
 }
 */
-UnityLight CreateLight(VertexToFragmentData i)
+
+UnityLight MainLight(VertexToFragmentData i)
 {
-    // we can just return MainLight()
-    // return MainLight();
-    UnityLight light;
-    // need to get UNITY_LIGHT_ATTENUATION(attenuation, i, i.worldPos);
-    light.color = _LightColor0.rgb; // * attenuation;
-    light.dir = UnityObjectToWorldDir(i.worldPosition);
-    // light.ndotl = DotClamped(light.dir, i.normal);
-    return light;
+    UnityLight l;
+    l.color = _LightColor0.rgb;
+    #if defined(POINT) || defined(POINT_COOKIE) || defined(SPOT)
+        l.dir = normalize(_WorldSpaceLightPos0.xyz - i.worldPosition);
+    #else
+        l.dir = _WorldSpaceLightPos0.xyz;
+    #endif
+    l.dir = _WorldSpaceLightPos0.xyz;
+    return l;
 }
 
-// for reflection
-float3 BoxProjection(float3 direction, float3 position, float4 cubemapPosition, float3 boxMin, float3 boxMax)
+UnityIndirect ZeroIndirect ()
 {
+    UnityIndirect ind;
+    ind.diffuse = 0;
+    ind.specular = 0;
+    return ind;
 }
 
-// for indirect light
-// UNITY_BRDF_PBS need use indirect light
-UnityIndirect CreateIndirectLight(VertexToFragmentData i, float3 viewDir)
+float3 NormalizedPerPixelNormal(float3 n)
 {
+    return normalize((float3)n);
+}
+
+UnityLight AdditiveLight(half3 lightdir, half atten)
+{
+    UnityLight l;
+    l.color = _LightColor0.rgb;
+    l.dir = lightdir;
+    l.color *= atten;
+    return l;
 }
 
 // convert tangent space normal to world space normal
 // use TBN Matrix
-void CalculateFragmentWorldNormal(inout VertexToFragmentData i)
+half3 PerPixelWorldNormal(VertexToFragmentData i)
 {
     float3 tangentSpaceNormal = GetTangentSpaceNormal(i);
     float3 binormal = i.binormal;
@@ -246,17 +290,142 @@ void CalculateFragmentWorldNormal(inout VertexToFragmentData i)
     worldNormal.z = dot(vff03, tangentSpaceNormal);
     */
     
-    i.normal = worldNormal;
+    return worldNormal;
 }
 
-// How to Structure Shader Code
+struct FragmentCommonData
+{
+    half3 diffColor;
+    half3 specuColor;
+    half oneMinusReflectivity;
+    float3 normalWorld;
+    float3 eyeVec;
+    half alpha;
+    half smoothness;
+    float3 posWorld;
+};
+
+
+// Diffuse/Spec Energy conservation
+// Unity has a utility function to take care of the energy conservation
+// StandardUtils.cginc
+// inline half3 EnergyConservationBetweenDiffuseAndSpecular(half3 albedo, half3 specColor)
+// {
+// }
+
+inline FragmentCommonData SpecularSetUp(VertexToFragmentData i)
+{
+    half4 specGloss = GetSpecularGloss(i);
+    half3 specColor = specGloss.rgb;
+    half smoothness = specGloss.a;
+
+    half oneMinusReflectivity;
+    half3 diffColor = EnergyConservationBetweenDiffuseAndSpecular(GetAlbedo(i), specColor, oneMinusReflectivity);
+    
+    FragmentCommonData o = (FragmentCommonData)0;
+    o.diffColor = diffColor;
+    o.specuColor = specColor;
+    o.oneMinusReflectivity = oneMinusReflectivity;
+    o.smoothness = smoothness;
+    return o;
+}
+
+inline FragmentCommonData FragmentSetUp(VertexToFragmentData i)
+{
+    half alpha = GetAlpha(i);
+    #if defined(_ALPHATEST_ON)
+        clip(alpha - _Cutoff);
+    #endif
+    FragmentCommonData o = SpecularSetUp(i);
+    // o.normalWorld = float3(1.0, 0.0, 0.0); 
+    o.normalWorld  = PerPixelWorldNormal(i);
+    o.posWorld = i.worldPosition;
+    o.eyeVec = i.eyeDir;
+    o.diffColor = PreMultiplyAlpha(o.diffColor, alpha, o.oneMinusReflectivity, /*out*/ o.alpha);
+    return o;
+}
+
+/*
+ * Unity3D standard shading sytem (foward-rendering path)
+ * https://docs.unity3d.com/Manual/RenderTech-ForwardRendering.html
+ */
+
+// Used in ForwardBase pass: Calculates diffuse lighting from 4 point lights, with data packed in a special way.
+// Shade4PointLights
+// Used in Vertex pass: Calculates diffuse lighting from lightCount lights. Specifying true to spotLight is more expensive
+// to calculate but lights are treated as spot lights otherwise they are treated as point lights.
+// ShadeVertexLightsFull
+
+// How to Structure Shader Code for different setup
 // ------------------------------------------------------------------
 //  Base forward pass (directional light, emission, lightmaps, ...)
-//  VertexOutputForwardBase
+//  forward-base pass
 
-// ------------------------------------------------------------------
-//  Additive forward pass (one light per pass)
-//  VertexOutputForwardAdd
+inline UnityGI FragmentGI(FragmentCommonData s, half occlusion, half4 i_ambientOrLightmapUV, half atten, UnityLight light, bool reflections)
+{
+    UnityGIInput d;
+    d.light = light;
+    d.worldPos = s.posWorld;
+    d.worldViewDir = -s.eyeVec;
+    d.atten = atten;
+
+    #if defined(LIGHTMAP_ON) || defined(DYNAMICLIGHTMAP_ON)
+    d.ambient = 0;
+    d.lightmapUV = i_ambientOrLightmapUV;
+    #else
+    d.ambient = i_ambientOrLightmapUV.rgb;
+    d.lightmapUV = 0;
+    #endif
+
+    d.probeHDR[0] = unity_SpecCube0_HDR;
+    d.probeHDR[1] = unity_SpecCube1_HDR;
+
+    #if defined(UNITY_SPECCUBE_BLENDING) || defined(UNITY_SPECCUBE_BOX_PROJECTION)
+    d.boxMin[0] = unity_SpecCube0_BoxMin; // .w holds lerp value for blending
+    #endif
+
+    // https://docs.unity3d.com/ScriptReference/Rendering.BuiltinShaderDefine.UNITY_SPECCUBE_BOX_PROJECTION.html
+    #ifdef UNITY_SPECCUBE_BOX_PROJECTION
+    d.boxMax[0] = unity_SpecCube0_BoxMax;
+    d.probePosition[0] = unity_SpecCube0_ProbePosition;
+    d.boxMax[1] = unity_SpecCube1_BoxMax;
+    d.boxMin[1] = unity_SpecCube1_BoxMin;
+    d.probePosition[1] = unity_SpecCube1_ProbePosition;
+    #endif
+
+    // if reflections
+    if(reflections)
+    {
+        // env data
+        Unity_GlossyEnvironmentData g = UnityGlossyEnvironmentSetup(s.smoothness, -s.eyeVec, s.normalWorld, s.specuColor);
+
+        // Replace the reflUVW if it has been compute in Vertex shader. Note: the compiler will optimize the calcul in UnityGlossyEnvironmentSetup itself
+        #if UNITY_STANDARD_SIMPLE
+        g.reflUVW = s.reflUVW;
+        #endif
+        
+        return UnityGlobalIllumination(d, occlusion, s.normalWorld, g);
+    }
+    else
+    {
+        return UnityGlobalIllumination (d, occlusion, s.normalWorld);
+    }
+}
+
+inline UnityGI FragmentGI(FragmentCommonData s, half occlusion, half4 i_ambientOrLightmapUV, half atten, UnityLight light)
+{
+    return FragmentGI(s, occlusion, i_ambientOrLightmapUV, atten, light, true);
+}
+
+half4 OutputForward(half4 output, half alphaFromSurface)
+{
+    #if defined(_ALPHABLEND_ON) || defined(_ALPHAPREMULTIPLY_ON)
+        output.a = alphaFromSurface;
+    #else
+        UNITY_OPAQUE_ALPHA(output.a);
+    #endif
+    return output;
+}
 
 // vertex shading function
 VertexToFragmentData custom_vertexBase(VertexInputData v)
@@ -273,16 +442,86 @@ VertexToFragmentData custom_vertexBase(VertexInputData v)
     o.binormal = normalize(cross( o.normal, o.tangent.xyz)) * binormalsign;
     o.worldPosition = mul(unity_ObjectToWorld, v.vertex);
     o.lightDir = normalize(UnityWorldSpaceLightDir(o.worldPosition));
+
+    // camera  point to vertex world position
+    o.eyeDir.xyz = normalize(o.worldPosition - _WorldSpaceCameraPos);
     return o;
+}
+
+half4 fragForwardBasePass_Internal(VertexToFragmentData i)
+{
+    FragmentCommonData s = FragmentSetUp(i);
+    
+    UnityLight mainLight = MainLight(i);
+    UNITY_LIGHT_ATTENUATION(atten, i, s.posWorld);
+    half occlusion = GetOcclusion(i);
+    UnityGI gi = FragmentGI(s, occlusion, i.ambientOrLightmapUV, atten, mainLight);
+
+    half4 c = UNITY_BRDF_PBS(
+        s.diffColor,
+        s.specuColor,
+        s.oneMinusReflectivity,
+        s.smoothness,
+        s.normalWorld,
+        -s.eyeVec,
+        gi.light,
+        gi.indirect);
+
+    c.rgb += GetEmission(i);
+    return OutputForward(c, s.alpha);
 }
 
 // fragment shading function
 fixed4 custom_fragBase(VertexToFragmentData i) : SV_Target
 {
-    fixed3 albedo = GetAlbedo(i);
-    CalculateFragmentWorldNormal(i);
-    float3 diffuse = _LightColor0.rgb * albedo * max(0, dot(i.normal, i.lightDir));
-    return fixed4(diffuse, 1.0);
+    return fragForwardBasePass_Internal(i);
+}
+
+// ------------------------------------------------------------------
+//  Additive forward pass (one light per pass)
+//  forward-add pass
+half4 fragForwardAddPass_Internal(VertexToFragmentData i)
+{
+    FragmentCommonData s = FragmentSetUp(i);
+    UNITY_LIGHT_ATTENUATION(atten, i, s.posWorld);
+    
+    #if defined(POINT) || defined(POINT_COOKIE) || defined(SPOT)
+        i.lightDir = normalize(_WorldSpaceLightPos0.xyz - i.worldPosition);
+    #else
+        i.lightDir = _WorldSpaceLightPos0.xyz;
+    #endif
+    
+    UnityLight light  = AdditiveLight(i.lightDir, atten);
+    UnityIndirect noIndirect  =ZeroIndirect();
+    half4 c = UNITY_BRDF_PBS (s.diffColor, s.specuColor, s.oneMinusReflectivity, s.smoothness, s.normalWorld, -s.eyeVec, light, noIndirect);
+    // return fixed4(i.lightDir, 1.0);
+    // return fixed4(s.normalWorld, 1.0);
+    return OutputForward(c, s.alpha);
+}
+
+VertexToFragmentData custom_vertAdd(VertexInputData v)
+{
+    VertexToFragmentData o;
+    o.pos = UnityObjectToClipPos(v.vertex);
+    
+    o.uv.xy = TRANSFORM_TEX(v.uv, _MainTex);
+    o.uv.zw = TRANSFORM_TEX(v.uv, _DetailAlbedoMap);
+    
+    o.tangent.xyz = UnityObjectToWorldDir(v.tangent.xyz);
+    o.normal = UnityObjectToWorldNormal(v.normal);
+    half binormalsign = v.tangent.w * unity_WorldTransformParams.w;
+    o.binormal = normalize(cross( o.normal, o.tangent.xyz)) * binormalsign;
+    o.worldPosition = mul(unity_ObjectToWorld, v.vertex);
+    o.lightDir = normalize(UnityWorldSpaceLightDir(o.worldPosition));
+
+    // camera  point to vertex world position
+    o.eyeDir.xyz = normalize(o.worldPosition - _WorldSpaceCameraPos);
+    return o;
+}
+
+fixed4 custom_fragAdd(VertexToFragmentData i) : SV_Target
+{
+     return fragForwardAddPass_Internal(i);
 }
 
 #endif
