@@ -87,6 +87,8 @@
             
             // #pragma multi_compile POINT SPOT DIRECTIONAL LIGHTMAP_ON DIRLIGHTMAP_COMBINED DYNAMICLIGHTMAP_ON SHADOWS_SCREEN SHADOWS_SHADOWMASK LIGHTMAP_SHADOW_MIXING LIGHTPROBE_SH
             #pragma multi_compile_fwdbase
+            // we can skip variants
+            // #pragma skip_variants SHADOWS_SOFT DIRLIGHTMAP_COMBINED
             //  DIRECTIONAL LIGHTMAP_ON DIRLIGHTMAP_COMBINED DYNAMICLIGHTMAP_ON SHADOWS_SCREEN SHADOWS_SHADOWMASK LIGHTMAP_SHADOW_MIXING LIGHTPROBE_SH
             #pragma vertex custom_vertexBase
             #pragma fragment custom_fragBase
@@ -105,6 +107,8 @@
             {
                 "LightMode" = "ForwardAdd"
             }
+            // Additive-Blend[Blend One One]
+            // for debug add-pass[Blend One Zero]
             Blend [_SrcBlend] One
 
             ZWrite Off
@@ -127,8 +131,8 @@
             // #pragma multi_compile DIRECTIONAL POINT SPOT
             #pragma multi_compile_fwdadd_fullshadows
 
-            #pragma vertex custom_vertAdd
-            #pragma fragment custom_fragAdd
+            #pragma vertex custom_vert_AddPass
+            #pragma fragment custom_frag_AddPass
             
             // #include "UnityCG.cginc"
             #include "Custom-Light-Core.cginc"

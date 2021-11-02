@@ -210,16 +210,29 @@ else // point or spot light
 }
 */
 
+half3 GetLightDir(float3 worldPos)
+{
+    #if defined(POINT) || defined(POINT_COOKIE) || defined(SPOT)
+        return normalize(_WorldSpaceLightPos0.xyz - worldPos);
+    #else
+        return _WorldSpaceLightPos0.xyz;
+    #endif
+}
+
 UnityLight MainLight(VertexToFragmentData i)
 {
     UnityLight l;
     l.color = _LightColor0.rgb;
-    #if defined(POINT) || defined(POINT_COOKIE) || defined(SPOT)
-        l.dir = normalize(_WorldSpaceLightPos0.xyz - i.worldPosition);
-    #else
-        l.dir = _WorldSpaceLightPos0.xyz;
-    #endif
-    l.dir = _WorldSpaceLightPos0.xyz;
+    l.dir = GetLightDir(i.worldPosition);
+    return l;
+}
+
+UnityLight AdditiveLight(half3 lightdir, half atten)
+{
+    UnityLight l;
+    l.color = _LightColor0.rgb;
+    l.dir = lightdir;
+    l.color *= atten;
     return l;
 }
 
@@ -234,15 +247,6 @@ UnityIndirect ZeroIndirect ()
 float3 NormalizedPerPixelNormal(float3 n)
 {
     return normalize((float3)n);
-}
-
-UnityLight AdditiveLight(half3 lightdir, half atten)
-{
-    UnityLight l;
-    l.color = _LightColor0.rgb;
-    l.dir = lightdir;
-    l.color *= atten;
-    return l;
 }
 
 // convert tangent space normal to world space normal
@@ -446,15 +450,44 @@ VertexToFragmentData custom_vertexBase(VertexInputData v)
     return o;
 }
 
-half4 fragForwardBasePass_Internal(VertexToFragmentData i)
+half4 fragForward_BasePass_Internal(VertexToFragmentData i)
 {
     FragmentCommonData s = FragmentSetUp(i);
     
     UnityLight mainLight = MainLight(i);
+    // output light fall-off
+    // Light Attenuation (POINT, SPOT, DIRECTIONAL) with different light type
+    // https://docs.unity3d.com/Manual/ProgressiveLightmapper-CustomFallOff.html
+    // https://en.wikipedia.org/wiki/Inverse-square_law
+    // https://www.sciencedirect.com/topics/engineering/inverse-square-law
+    // https://learnopengl.com/Lighting/Light-casters
     UNITY_LIGHT_ATTENUATION(atten, i, s.posWorld);
     half occlusion = GetOcclusion(i);
-    UnityGI gi = FragmentGI(s, occlusion, i.ambientOrLightmapUV, atten, mainLight);
 
+    ///////////////////// or debug output informations
+    // atten
+    // return fixed4(atten, 0.0, 0.0, 1.0);
+
+    // diffuse
+    // return fixed4(s.diffColor, 1.0);
+    // 
+    // smoothness
+    // return fixed4(s.smoothness.rrr, 1.0);
+    // 
+    // oneMinusReflectivity
+    // return fixed4(s.oneMinusReflectivity.rrr, 1.0);
+    // 
+    // specular
+    // return fixed4(s.specuColor, 1.0);
+    // 
+    // occlusion
+    // return fixed4(occlusion.rrr, 1.0);
+    ///////////////////// for debug output informations
+    // main light
+    // return fixed4(mainLight.color, 1.0);
+    
+    UnityGI gi = FragmentGI(s, occlusion, i.ambientOrLightmapUV, atten, mainLight);
+    
     half4 c = UNITY_BRDF_PBS(
         s.diffColor,
         s.specuColor,
@@ -472,33 +505,27 @@ half4 fragForwardBasePass_Internal(VertexToFragmentData i)
 // fragment shading function
 fixed4 custom_fragBase(VertexToFragmentData i) : SV_Target
 {
-    return fragForwardBasePass_Internal(i);
+    return fragForward_BasePass_Internal(i);
 }
 
 // ------------------------------------------------------------------
 //  Additive forward pass (one light per pass)
 //  forward-add pass
-half4 fragForwardAddPass_Internal(VertexToFragmentData i)
+half4 fragForward_AddPass_Internal(VertexToFragmentData i)
 {
     FragmentCommonData s = FragmentSetUp(i);
     UNITY_LIGHT_ATTENUATION(atten, i, s.posWorld);
 
-    half3 lightdir;
-    #if defined(POINT) || defined(POINT_COOKIE) || defined(SPOT)
-        lightdir = normalize(_WorldSpaceLightPos0.xyz - i.worldPosition);
-    #else
-        lightdir = _WorldSpaceLightPos0.xyz;
-    #endif
+    // Get light dir with different light type
+    half3 lightdir = GetLightDir(i.worldPosition);
     
     UnityLight light  = AdditiveLight(lightdir, atten);
-    UnityIndirect noIndirect  =ZeroIndirect();
+    UnityIndirect noIndirect = ZeroIndirect();
     half4 c = UNITY_BRDF_PBS (s.diffColor, s.specuColor, s.oneMinusReflectivity, s.smoothness, s.normalWorld, -s.eyeVec, light, noIndirect);
-    // return fixed4(i.lightDir, 1.0);
-    // return fixed4(s.normalWorld, 1.0);
     return OutputForward(c, s.alpha);
 }
 
-VertexToFragmentData custom_vertAdd(VertexInputData v)
+VertexToFragmentData custom_vert_AddPass(VertexInputData v)
 {
     VertexToFragmentData o;
     o.pos = UnityObjectToClipPos(v.vertex);
@@ -519,9 +546,9 @@ VertexToFragmentData custom_vertAdd(VertexInputData v)
     return o;
 }
 
-fixed4 custom_fragAdd(VertexToFragmentData i) : SV_Target
+fixed4 custom_frag_AddPass(VertexToFragmentData i) : SV_Target
 {
-     return fragForwardAddPass_Internal(i);
+     return fragForward_AddPass_Internal(i);
 }
 
 #endif
