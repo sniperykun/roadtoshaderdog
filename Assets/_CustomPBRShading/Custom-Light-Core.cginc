@@ -127,7 +127,6 @@ half GetOcclusion(VertexToFragmentData i)
     #endif
 }
 
-
 // get tangent space normal(normal map sampler)
 float3 GetTangentSpaceNormal(VertexToFragmentData i)
 {
@@ -336,7 +335,6 @@ inline FragmentCommonData FragmentSetUp(VertexToFragmentData i)
         clip(alpha - _Cutoff);
     #endif
     FragmentCommonData o = SpecularSetUp(i);
-    // o.normalWorld = float3(1.0, 0.0, 0.0); 
     o.normalWorld  = PerPixelWorldNormal(i);
     o.posWorld = i.worldPosition;
     o.eyeVec = i.eyeDir;
@@ -385,11 +383,11 @@ inline UnityGI FragmentGI(FragmentCommonData s, half occlusion, half4 i_ambientO
 
     // https://docs.unity3d.com/ScriptReference/Rendering.BuiltinShaderDefine.UNITY_SPECCUBE_BOX_PROJECTION.html
     #ifdef UNITY_SPECCUBE_BOX_PROJECTION
-    d.boxMax[0] = unity_SpecCube0_BoxMax;
-    d.probePosition[0] = unity_SpecCube0_ProbePosition;
-    d.boxMax[1] = unity_SpecCube1_BoxMax;
-    d.boxMin[1] = unity_SpecCube1_BoxMin;
-    d.probePosition[1] = unity_SpecCube1_ProbePosition;
+        d.boxMax[0] = unity_SpecCube0_BoxMax;
+        d.probePosition[0] = unity_SpecCube0_ProbePosition;
+        d.boxMax[1] = unity_SpecCube1_BoxMax;
+        d.boxMin[1] = unity_SpecCube1_BoxMin;
+        d.probePosition[1] = unity_SpecCube1_ProbePosition;
     #endif
 
     // if reflections
@@ -400,7 +398,7 @@ inline UnityGI FragmentGI(FragmentCommonData s, half occlusion, half4 i_ambientO
 
         // Replace the reflUVW if it has been compute in Vertex shader. Note: the compiler will optimize the calcul in UnityGlossyEnvironmentSetup itself
         #if UNITY_STANDARD_SIMPLE
-        g.reflUVW = s.reflUVW;
+            g.reflUVW = s.reflUVW;
         #endif
         
         return UnityGlobalIllumination(d, occlusion, s.normalWorld, g);

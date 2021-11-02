@@ -94,7 +94,7 @@ Shader "roadtoshaderdog/BasicShaderSkeleton"
 
             // Macro define
             #define float_t half
-            #define float2_t half2 
+            #define float2_t half2
             #define float3_t half3
             #define float4_t half4
             #define float3x3_t half3x3

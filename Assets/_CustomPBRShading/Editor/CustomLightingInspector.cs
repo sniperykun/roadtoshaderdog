@@ -451,7 +451,7 @@ public class CustomLightingInspector : ShaderGUI
         // The fixup routine makes sure that the material is in the correct state if/when changes are made to the mode or color.
         MaterialEditor.FixupEmissiveFlag(material);
         bool shouldEmissionBeEnabled = (material.globalIlluminationFlags & MaterialGlobalIlluminationFlags.EmissiveIsBlack) == 0;
-        SetKeyWord(material, "_EMISSION", shouldEmissionBeEnabled);
+        SetKeyWord(material, "_EMISSION_MAP", shouldEmissionBeEnabled);
         
         if (material.HasProperty("_SmoothnessTextureChannel"))
         {

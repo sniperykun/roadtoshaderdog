@@ -73,7 +73,6 @@
             #pragma target 3.0
             // shader keywords
             // use _local shader
-            #pragma multi_compile _ SHADOWS_SCREEN
             #pragma shader_feature_local _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
             #pragma shader_feature_local _NORMAL_MAP
             #pragma shader_feature _EMISSION_MAP
@@ -85,8 +84,10 @@
             #pragma shader_feature_local _SPECGLOSSMAP
             #pragma shader_feature_local _SPECULARHIGHLIGHTS_OFF
             #pragma shader_feature_local _GLOSSYREFLECTIONS_OFF
-            #pragma multi_compile DIRECTIONAL POINT SPOT
             
+            // #pragma multi_compile POINT SPOT DIRECTIONAL LIGHTMAP_ON DIRLIGHTMAP_COMBINED DYNAMICLIGHTMAP_ON SHADOWS_SCREEN SHADOWS_SHADOWMASK LIGHTMAP_SHADOW_MIXING LIGHTPROBE_SH
+            #pragma multi_compile_fwdbase
+            //  DIRECTIONAL LIGHTMAP_ON DIRLIGHTMAP_COMBINED DYNAMICLIGHTMAP_ON SHADOWS_SCREEN SHADOWS_SHADOWMASK LIGHTMAP_SHADOW_MIXING LIGHTPROBE_SH
             #pragma vertex custom_vertexBase
             #pragma fragment custom_fragBase
             
@@ -123,9 +124,8 @@
             #pragma shader_feature_local _SPECGLOSSMAP
             #pragma shader_feature_local _SPECULARHIGHLIGHTS_OFF
             #pragma shader_feature_local _GLOSSYREFLECTIONS_OFF
-            #pragma multi_compile DIRECTIONAL POINT SPOT
-
-            // #pragma multi_compile_fwdbase 
+            // #pragma multi_compile DIRECTIONAL POINT SPOT
+            #pragma multi_compile_fwdadd_fullshadows
 
             #pragma vertex custom_vertAdd
             #pragma fragment custom_fragAdd
