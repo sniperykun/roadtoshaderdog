@@ -3,6 +3,7 @@
 
 #include "UnityPBSLighting.cginc"
 #include "AutoLight.cginc"
+#include "UnityCG.cginc"
 #include "UnityGlobalIllumination.cginc"
 
 // Custom Light Input
@@ -44,6 +45,7 @@ struct VertexInputData
     float4 tangent : TANGENT;
     float3 normal : NORMAL;
     float2 uv : TEXCOORD0;
+    float2 uv1 : TEXCOORD1;
 };
 
 // Interpolators
@@ -307,6 +309,32 @@ struct FragmentCommonData
     float3 posWorld;
 };
 
+inline half4 VertexGIForward(VertexInputData data, float3 posWorld, half3 normalWorld)
+{
+    half4 ambientOrLightmapUV = 0;
+    // Static lightmaps
+    #ifdef LIGHTMAP_ON
+        ambientOrLightmapUV.xy = data.uv1.xy * unity_LightmapST.xy + unity_LightmapST.zw;
+        ambientOrLightmapUV.zw = 0;
+        // Sample light probe for Dynamic objects only (no static or dynamic lightmaps)
+    #elif UNITY_SHOULD_SAMPLE_SH
+        #ifdef VERTEXLIGHT_ON
+        // Approximated illumination from non-important point lights
+        ambientOrLightmapUV.rgb = Shade4PointLights (
+            unity_4LightPosX0, unity_4LightPosY0, unity_4LightPosZ0,
+            unity_LightColor[0].rgb, unity_LightColor[1].rgb, unity_LightColor[2].rgb, unity_LightColor[3].rgb,
+            unity_4LightAtten0, posWorld, normalWorld);
+        #endif
+    ambientOrLightmapUV.rgb = ShadeSHPerVertex (normalWorld, ambientOrLightmapUV.rgb);
+    #endif
+    
+    #ifdef DYNAMICLIGHTMAP_ON
+    ambientOrLightmapUV.zw = data.uv2.xy * unity_DynamicLightmapST.xy + unity_DynamicLightmapST.zw;
+    #endif
+
+    return ambientOrLightmapUV;
+}
+
 
 // Diffuse/Spec Energy conservation
 // Unity has a utility function to take care of the energy conservation
@@ -442,7 +470,9 @@ VertexToFragmentData custom_vertexBase(VertexInputData v)
     half binormalsign = v.tangent.w * unity_WorldTransformParams.w;
     o.binormal = normalize(cross( o.normal, o.tangent.xyz)) * binormalsign;
     o.worldPosition = mul(unity_ObjectToWorld, v.vertex);
-
+    
+    o.ambientOrLightmapUV = VertexGIForward(v, o.worldPosition, o.normal);
+    
     // camera  point to vertex world position
     o.eyeDir.xyz = normalize(o.worldPosition - _WorldSpaceCameraPos);
 
@@ -485,7 +515,7 @@ half4 fragForward_BasePass_Internal(VertexToFragmentData i)
     ///////////////////// for debug output informations
     // main light
     // return fixed4(mainLight.color, 1.0);
-    
+
     UnityGI gi = FragmentGI(s, occlusion, i.ambientOrLightmapUV, atten, mainLight);
     
     half4 c = UNITY_BRDF_PBS(
