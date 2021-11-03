@@ -470,9 +470,8 @@ VertexToFragmentData custom_vertexBase(VertexInputData v)
     half binormalsign = v.tangent.w * unity_WorldTransformParams.w;
     o.binormal = normalize(cross( o.normal, o.tangent.xyz)) * binormalsign;
     o.worldPosition = mul(unity_ObjectToWorld, v.vertex);
-    
+    // input vertex color or lightmap uv
     o.ambientOrLightmapUV = VertexGIForward(v, o.worldPosition, o.normal);
-    
     // camera  point to vertex world position
     o.eyeDir.xyz = normalize(o.worldPosition - _WorldSpaceCameraPos);
 

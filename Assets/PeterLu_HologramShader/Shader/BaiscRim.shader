@@ -9,7 +9,6 @@
 		LOD 200
 		Cull Back
 
-
 		CGPROGRAM
 
 		#pragma surface surf Standard alpha:fade

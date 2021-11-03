@@ -79,6 +79,7 @@
 				"RenderType"="Transparent"
 				"Queue"="Transparent"
 			}
+			
 			Cull off
 			ZWrite off
 			Blend SrcAlpha OneMinusSrcAlpha
