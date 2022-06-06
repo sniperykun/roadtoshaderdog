@@ -129,8 +129,7 @@ Shader "Snow"
 
                 upMask = saturate(upMask);
                 upMask = saturate(pow(upMask, _blendPower));
-
-
+                
                 //normal direction calculations
                 float3 normalDir = normalize(i.normalDir);
                 float3x3 tangentTransform = float3x3(i.tangentDir, i.bitangentDir, normalDir);
